@@ -93,12 +93,44 @@ struct AsteroidField {
         }
     }
 
-    void DrawAsteroidField(Shader& shader) {
+    // Instanced rendering for all asteroids
+    void DrawAsteroidFieldInstanced(Shader& shader) {
         shader.setBool("isUnlit", false);
-        shader.setFloat("brightness", 2.0f); 
-        
-        for (auto& asteroid : this->asteroids) {
-            asteroid.Draw(shader, *this->asteroidModel);
+
+        // For each mesh in the model, draw all asteroids that use it
+        for (size_t meshIdx = 0; meshIdx < asteroidModel->meshes.size(); ++meshIdx) {
+            // Collect model matrices for asteroids using this mesh
+            std::vector<glm::mat4> meshModelMatrices;
+            for (const auto& asteroid : this->asteroids) {
+                if (asteroid.MeshIndex == (int)meshIdx) {
+                    meshModelMatrices.push_back(asteroid.GetModelMatrix());
+                }
+            }
+            if (meshModelMatrices.empty()) continue;
+
+            // Setup instance buffer
+            unsigned int instanceVBO;
+            glGenBuffers(1, &instanceVBO);
+            glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+            glBufferData(GL_ARRAY_BUFFER, meshModelMatrices.size() * sizeof(glm::mat4), &meshModelMatrices[0], GL_STATIC_DRAW);
+
+            unsigned int VAO = asteroidModel->meshes[meshIdx].VAO;
+            glBindVertexArray(VAO);
+            std::size_t vec4Size = sizeof(glm::vec4);
+            for (unsigned int i = 0; i < 4; i++) {
+                glEnableVertexAttribArray(5 + i);
+                glVertexAttribPointer(5 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(i * vec4Size));
+                glVertexAttribDivisor(5 + i, 1);
+            }
+
+            asteroidModel->meshes[meshIdx].BindTextures(shader, 0);
+            // Draw instanced
+            //std::cout << "Drawing " << meshModelMatrices.size() << " instances of mesh " << meshIdx << std::endl;
+            glDrawElementsInstanced(GL_TRIANGLES, asteroidModel->meshes[meshIdx].indices.size(), GL_UNSIGNED_INT, 0, meshModelMatrices.size());
+
+            // Cleanup
+            glBindVertexArray(0);
+            glDeleteBuffers(1, &instanceVBO);
         }
     }
 };

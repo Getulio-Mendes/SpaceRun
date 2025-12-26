@@ -19,6 +19,7 @@ enum AsteroidType {
 };
 
 class Asteroid {
+
 public:
     glm::vec3 Position;
     glm::vec3 Rotation;
@@ -34,19 +35,15 @@ public:
 
     Asteroid(AsteroidType type, glm::vec3 position, int meshIndex, unsigned int textureID, glm::vec3 velocityDir = glm::vec3(0.0f)) 
         : Type(type), Position(position), MeshIndex(meshIndex), TextureID(textureID), LocalCenter(0.0f), LocalRadius(1.0f) {
-        
         // Random rotation
         Rotation = glm::vec3(rand() % 360, rand() % 360, rand() % 360);
-        
         // Random rotation velocity
         RotationVelocity = glm::vec3(
             (rand() % 100 - 50) / 10.0f,
             (rand() % 100 - 50) / 10.0f,
             (rand() % 100 - 50) / 10.0f
         );
-
         float speedBase = 0.0f;
-
         // Set properties based on type
         switch (type) {
             case SMALL:
@@ -65,14 +62,12 @@ public:
                 hitable = true;
                 break;
         }
-
         // Randomize speed a bit
         float speed = speedBase * ((rand() % 50 + 75) / 100.0f); // 0.75 to 1.25 factor
-
         if (glm::length(velocityDir) > 0.001f) {
             Velocity = glm::normalize(velocityDir) * speed;
         } else {
-             Velocity = glm::vec3(
+            Velocity = glm::vec3(
                 (rand() % 100 - 50) / 100.0f,
                 (rand() % 100 - 50) / 100.0f,
                 (rand() % 100 - 50) / 100.0f
@@ -86,19 +81,22 @@ public:
         Rotation += RotationVelocity * deltaTime;
     }
 
-    void Draw(Shader& shader, Model& model) {
+    glm::mat4 GetModelMatrix() const {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::translate(modelMatrix, Position);
         modelMatrix = glm::rotate(modelMatrix, glm::radians(Rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, glm::radians(Rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
         modelMatrix = glm::rotate(modelMatrix, glm::radians(Rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
         modelMatrix = glm::scale(modelMatrix, glm::vec3(Scale));
+        return modelMatrix;
+    }
+
+    void Draw(Shader& shader, Model& model) {
+        glm::mat4 modelMatrix = GetModelMatrix();
         shader.setMat4("model", modelMatrix);
-        
         if (MeshIndex < model.meshes.size())
             model.meshes[MeshIndex].Draw(shader, TextureID);
     }
-
 };
 
 Asteroid GenerateAsteroid(glm::vec3 center, float minRadius, float maxRadius, float ySpread, Model* model, const std::vector<unsigned int>& textures, glm::vec3 direction = glm::vec3(0.0f)) {

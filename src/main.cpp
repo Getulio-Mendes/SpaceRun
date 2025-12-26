@@ -80,10 +80,10 @@ int main()
 
 
     Shader shader("shaders/vertex.glsl", "shaders/fragment.glsl");
+    Shader instancedShader("shaders/asteroid_instance_vertex.glsl", "shaders/fragment.glsl");
     Shader uiShader("shaders/ui_vertex.glsl", "shaders/ui_fragment.glsl");
     Shader shieldShader("shaders/shield_vertex.glsl", "shaders/shield_fragment.glsl");
     Shader propulsionShader("shaders/propulsion_vertex.glsl", "shaders/propulsion_fragment.glsl");
-
     // Carregar modelo da nave espacial (GLTF)
     Model spaceshipModel("../models/scene.gltf");
  
@@ -162,11 +162,6 @@ int main()
         glStencilMask(0xFF); // Ensure we can clear the stencil buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-        // Ativar shader
-        shader.use();
-        shader.setBool("useSingleColor", false);
-        shader.setFloat("brightness", 1.0f);
-
         // --- RENDER SKYBOX (First) ---
         glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
  
@@ -176,6 +171,7 @@ int main()
 
         // Reactivate main shader
         shader.use();
+        shader.setBool("useSingleColor", false);
 
         // --- Light Configuration ---
         SetupSceneLighting(shader, items, sunPos, player);
@@ -195,8 +191,29 @@ int main()
         player.Draw(shader, spaceshipModel);
 
         // Draw Asteroids
+        instancedShader.use();
+
+        instancedShader.setBool("useSingleColor", false);
+ 
+
+        // --- Light Configuration for instancedShader ---
+        SetupSceneLighting(instancedShader, items, sunPos, player);
+
+        // Fog Configuration for instancedShader
+        instancedShader.setBool("useFog", true);
+        instancedShader.setVec3("fogColor", glm::vec3(0.0f, 0.0f, 0.0f)); 
+        instancedShader.setFloat("fogStart", 100.0f);
+        instancedShader.setFloat("fogEnd", 150.0f);
+
+        // --- Draw Objects ---
+        instancedShader.setVec3("viewPos", camera.Position);
+        instancedShader.setMat4("projection", projection);
+        instancedShader.setMat4("view", view);
+
         asteroidField.UpdateAsteroidField(deltaTime, player.Position, player.GetForwardVector(), currentFrame);
-        asteroidField.DrawAsteroidField(shader);
+        asteroidField.DrawAsteroidFieldInstanced(instancedShader);
+        
+        shader.use();
 
         // Check Collision
         float playerRadius = player.HitboxSize.x * player.ShieldScaleMultiplier;

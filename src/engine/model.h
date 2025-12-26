@@ -138,7 +138,7 @@ private:
                 // Debug: Print first few texture coordinates
                 if(i < 3)
                 {
-                    std::cout << "Vértice " << i << " TexCoords: (" << vec.x << ", " << vec.y << ")" << std::endl;
+                    //std::cout << "Vértice " << i << " TexCoords: (" << vec.x << ", " << vec.y << ")" << std::endl;
                 }
                 
                 // Tangente
@@ -174,10 +174,10 @@ private:
         // Processar materiais
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];    
 
-        std::cout << "Material tem " << material->GetTextureCount(aiTextureType_NONE) << " texturas NONE" << std::endl;
-        std::cout << "Material tem " << material->GetTextureCount(aiTextureType_BASE_COLOR) << " texturas BASE_COLOR" << std::endl;
-        std::cout << "Material tem " << material->GetTextureCount(aiTextureType_NORMALS) << " texturas NORMALS" << std::endl;
-        std::cout << "Material tem " << material->GetTextureCount(aiTextureType_UNKNOWN) << " texturas UNKNOWN" << std::endl;
+        // std::cout << "Material tem " << material->GetTexture(aiTextureType_NONE) << " texturas NONE" << std::endl;
+        // std::cout << "Material tem " << material->GetTextureCount(aiTextureType_BASE_COLOR) << " texturas BASE_COLOR" << std::endl;
+        // std::cout << "Material tem " << material->GetTextureCount(aiTextureType_NORMALS) << " texturas NORMALS" << std::endl;
+        // std::cout << "Material tem " << material->GetTextureCount(aiTextureType_UNKNOWN) << " texturas UNKNOWN" << std::endl;
 
         // 1. Mapas diffuse
         std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
@@ -224,7 +224,7 @@ private:
     std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName)
     {
         std::vector<Texture> textures;
-        std::cout << "Procurando texturas do tipo: " << typeName << " (total: " << mat->GetTextureCount(type) << ")" << std::endl;
+        // std::cout << "Procurando texturas do tipo: " << typeName << " (total: " << mat->GetTextureCount(type) << ")" << std::endl;
         
         for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
         {
@@ -262,7 +262,7 @@ unsigned int TextureFromFile(const char *path, const std::string &directory, boo
     std::string filename = std::string(path);
     filename = directory + '/' + filename;
 
-    std::cout << "Tentando carregar textura: " << filename << std::endl;
+    // std::cout << "Tentando carregar textura: " << filename << std::endl;
 
     unsigned int textureID;
     glGenTextures(1, &textureID);
@@ -271,8 +271,8 @@ unsigned int TextureFromFile(const char *path, const std::string &directory, boo
     unsigned char *data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
     if (data)
     {
-        std::cout << "Textura carregada com sucesso! " << width << "x" << height 
-                  << " com " << nrComponents << " componentes" << std::endl;
+        // std::cout << "Textura carregada com sucesso! " << width << "x" << height 
+        //           << " com " << nrComponents << " componentes" << std::endl;
         
         GLenum format;
         if (nrComponents == 1)

@@ -8,6 +8,8 @@
 #include <string>
 
 inline void SetupSceneLighting(Shader& shader, const std::vector<Item>& items, const glm::vec3& sunPos, Player& player) {
+    shader.setFloat("brightness", 1.0f);
+
     // 1. Directional light (Sun)
     shader.setVec3("dirLight.direction", -sunPos);
     shader.setVec3("dirLight.ambient", 0.2f, 0.2f, 0.2f);

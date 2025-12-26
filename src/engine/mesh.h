@@ -67,17 +67,16 @@ public:
         Radius = maxDist;
     }
 
-    // Renderizar a mesh
-    void Draw(Shader &shader, unsigned int overrideTextureID = 0) 
+    // Bind all relevant textures for this mesh, without drawing
+    void BindTextures(Shader &shader, unsigned int overrideTextureID = 0) 
     {
-        // Bind texturas apropriadas
         unsigned int diffuseNr  = 1;
         unsigned int specularNr = 1;
         unsigned int normalNr   = 1;
         unsigned int heightNr   = 1;
         bool hasDiffuse = false;
         bool hasSpecular = false;
-        
+
         if (overrideTextureID != 0)
         {
             glActiveTexture(GL_TEXTURE0);
@@ -90,10 +89,8 @@ public:
             for(unsigned int i = 0; i < textures.size(); i++)
             {
                 glActiveTexture(GL_TEXTURE0 + i);
-                
                 std::string number;
                 std::string name = textures[i].type;
-                
                 if(name == "texture_diffuse") {
                     number = std::to_string(diffuseNr++);
                     hasDiffuse = true;
@@ -111,15 +108,19 @@ public:
                 glBindTexture(GL_TEXTURE_2D, textures[i].id);
             }
         }
-        
+
         shader.setInt("hasDiffuse", hasDiffuse ? 1 : 0);
         shader.setInt("hasSpecular", hasSpecular ? 1 : 0);
-        
+    }
+
+    // Renderizar a mesh
+    void Draw(Shader &shader, unsigned int overrideTextureID = 0) 
+    {
+        BindTextures(shader, overrideTextureID);
         // Desenhar mesh
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
-
         glActiveTexture(GL_TEXTURE0);
     }
 
