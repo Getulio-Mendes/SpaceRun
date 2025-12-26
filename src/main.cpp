@@ -57,6 +57,7 @@ int main()
 
     // Criação da janela
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Trabalho GC", NULL, NULL);
+    glfwWindowHint(GLFW_SAMPLES,4);
     if (window == NULL)
     {
         std::cout << "Falha ao criar janela GLFW" << std::endl;
@@ -78,6 +79,7 @@ int main()
         return -1;
     }
 
+    glEnable(GL_MULTISAMPLE); 
 
     Shader shader("shaders/vertex.glsl", "shaders/fragment.glsl");
     Shader instancedShader("shaders/asteroid_instance_vertex.glsl", "shaders/fragment.glsl");
@@ -212,7 +214,7 @@ int main()
 
         asteroidField.UpdateAsteroidField(deltaTime, player.Position, player.GetForwardVector(), currentFrame);
         asteroidField.DrawAsteroidFieldInstanced(instancedShader);
-        
+
         shader.use();
 
         // Check Collision
