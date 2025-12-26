@@ -1,7 +1,7 @@
 #ifndef PRIMITIVES_H
 #define PRIMITIVES_H
 
-#include <glad/glad.h>
+#include <libs/glad.h>
 #include <glm/glm.hpp>
 #include <vector>
 #include <cmath>

@@ -1,15 +1,15 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include <glad/glad.h>
+#include "libs/glad.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 
 #include "camera.h"
-#include "model.h"
-#include "shader.h"
-#include "primitives.h"
+#include "engine/model.h"
+#include "engine/shader.h"
+#include "engine/primitives.h"
 
 class Player {
 public:

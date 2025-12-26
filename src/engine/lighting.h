@@ -1,7 +1,7 @@
 #ifndef LIGHTING_H
 #define LIGHTING_H
 
-#include "shader.h"
+#include "engine/shader.h"
 #include "game_item.h"
 #include "player.h"
 #include <vector>

@@ -1,4 +1,4 @@
-#include <glad/glad.h>
+#include <libs/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -7,16 +7,16 @@
 #include <iostream>
 #include <string>
 
-#include "shader.h"
-#include "camera.h"
-#include "model.h"
-#include "skybox.h"
+#include "engine/shader.h"
+#include "engine/model.h"
+#include "engine/primitives.h"
+#include "engine/skybox.h"
+#include "engine/lighting.h"
+#include "engine/ui.h"
 #include "player.h"
 #include "asteroid.h"
-#include "primitives.h"
+#include "asteroidField.h"
 #include "game_item.h"
-#include "lighting.h"
-#include "ui.h"
 
 // Configurações da janela
 const unsigned int SCR_WIDTH = 1280;
@@ -34,6 +34,8 @@ float lastFrame = 0.0f;
 
 // Player
 Player player;
+const float spawnRadius = 200.0f;
+const float despawnRadius = 300.0f;
 
 // Callbacks
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -76,11 +78,6 @@ int main()
         return -1;
     }
 
-    // Depth test para que a ordem de draw não importe
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     Shader shader("shaders/vertex.glsl", "shaders/fragment.glsl");
     Shader uiShader("shaders/ui_vertex.glsl", "shaders/ui_fragment.glsl");
@@ -89,13 +86,12 @@ int main()
 
     // Carregar modelo da nave espacial (GLTF)
     Model spaceshipModel("../models/scene.gltf");
-    std::cout << "Modelo GLTF carregado! Meshes: " << spaceshipModel.meshes.size() << std::endl;
-
+ 
     // Carregar Skybox
     Skybox skybox;
 
     // Asteroid Field Setup
-    Model asteroidModel("../models/asteriods/asteroid_03_01.obj", true);
+    Model asteroidModel("../models/asteriods/asteroid_03_01.obj", true, true);
     std::vector<unsigned int> asteroidTextures;
     asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0001.jpg", "../models/asteriods"));
     asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0002.jpg", "../models/asteriods"));
@@ -106,8 +102,7 @@ int main()
     asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0007.jpg", "../models/asteriods"));
     asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0008.jpg", "../models/asteriods"));
 
-    AsteroidField asteroidField = CreateAsteroidField(&asteroidModel, asteroidTextures, 2000, 150.0f, 10.0f);
-
+    AsteroidField asteroidField = AsteroidField(&asteroidModel, asteroidTextures, 2000, spawnRadius, despawnRadius);
     std::vector<Item> items;
 
     // Directional Light Source 
@@ -155,8 +150,14 @@ int main()
         
         // Physics Update
         player.Update(deltaTime, camera);
-
-        // Renderização
+        
+        // Depth test para que a ordem de draw não importe
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
+ 
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glStencilMask(0xFF); // Ensure we can clear the stencil buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -167,6 +168,8 @@ int main()
         shader.setFloat("brightness", 1.0f);
 
         // --- RENDER SKYBOX (First) ---
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+ 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 2000.0f);
         glm::mat4 view = camera.GetViewMatrix();
         skybox.Draw(view, projection);
@@ -192,12 +195,12 @@ int main()
         player.Draw(shader, spaceshipModel);
 
         // Draw Asteroids
-        UpdateAsteroidField(asteroidField, deltaTime, player.Position, player.GetForwardVector(), currentFrame);
-        DrawAsteroidField(asteroidField, shader);
+        asteroidField.UpdateAsteroidField(deltaTime, player.Position, player.GetForwardVector(), currentFrame);
+        asteroidField.DrawAsteroidField(shader);
 
         // Check Collision
         float playerRadius = player.HitboxSize.x * player.ShieldScaleMultiplier;
-        int hitIndex = CheckAsteroidCollision(asteroidField, player.Position, playerRadius);
+        int hitIndex = asteroidField.CheckAsteroidCollision(player.Position, playerRadius);
         if (hitIndex != -1) {
             if (player.InvulnerabilityTimer <= 0.0f) {
                 player.Lives--;

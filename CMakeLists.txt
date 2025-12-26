@@ -20,7 +20,10 @@ include_directories(
 # Source files
 file(GLOB SOURCES 
     "src/*.cpp"
-    "src/glad.c"
+    "src/engine/*.cpp"
+    "src/engine/libs/glad.c"
+    "src/engine/libs/stb_impl.cpp"
+
 )
 
 # Executable

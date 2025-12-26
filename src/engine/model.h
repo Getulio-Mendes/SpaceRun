@@ -1,7 +1,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include <glad/glad.h> 
+#include <libs/glad.h> 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -9,10 +9,10 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include "stb_image.h"
+#include "libs/stb_image.h"
 
 #include "mesh.h"
-#include "shader.h"
+#include "engine/shader.h"
 
 #include <string>
 #include <fstream>
@@ -32,11 +32,14 @@ public:
     std::vector<Mesh> meshes;
     std::string directory;
     bool flipNormals;
+    bool flipWindings;
 
     // Construtor, espera um caminho de arquivo para um modelo 3D
-    Model(std::string const &path, bool flipNormals = false) : flipNormals(flipNormals)
+    Model(std::string const &path, bool flipNormals = false, bool flipWindings = false)
     {
-        loadModel(path);
+        this->flipWindings = flipWindings;
+        this->flipNormals = flipNormals;
+        loadModel(path, flipWindings);
     }
 
     // Desenha o modelo e todas as suas meshes
@@ -48,11 +51,18 @@ public:
     
 private:
     // Carrega um modelo com extensões suportadas pelo ASSIMP do arquivo e armazena as meshes resultantes
-    void loadModel(std::string const &path)
+    void loadModel(std::string const &path, bool flipWindings = false)
     {
         // Ler arquivo via ASSIMP
         Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+        unsigned int flags =  aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace;
+
+        if(flipWindings){
+            flags |= aiProcess_FlipWindingOrder;
+        }
+        
+        const aiScene* scene = importer.ReadFile(path, flags);
+
         
         // Verificar erros
         if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) 

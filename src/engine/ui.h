@@ -1,12 +1,12 @@
 #ifndef UI_H
 #define UI_H
 
-#include <glad/glad.h>
+#include "libs/glad.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <string>
 #include <vector>
-#include "shader.h"
+#include "engine/shader.h"
 #include "primitives.h"
 #include "camera.h"
 #include "player.h"

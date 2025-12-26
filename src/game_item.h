@@ -4,8 +4,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
-#include "shader.h"
-#include "primitives.h"
+#include "engine/shader.h"
+#include "engine/primitives.h"
 
 struct Item {
     glm::vec3 position;
