@@ -12,9 +12,9 @@ inline void SetupSceneLighting(Shader& shader, const std::vector<Item>& items, c
 
     // 1. Directional light (Sun)
     shader.setVec3("dirLight.direction", -sunPos);
-    shader.setVec3("dirLight.ambient", 0.2f, 0.2f, 0.2f);
-    shader.setVec3("dirLight.diffuse", 0.6f, 0.6f, 0.6f);
-    shader.setVec3("dirLight.specular", 0.6f, 0.6f, 0.6f);
+    shader.setVec3("dirLight.ambient", 0.28f, 0.24f, 0.16f);   // softer warm yellowish ambient
+    shader.setVec3("dirLight.diffuse", 0.26f, 0.22f, 0.12f);   // less intense yellow sunlight
+    shader.setVec3("dirLight.specular", 0.5f, 0.44f, 0.26f);  // softer yellowish highlights
 
     // 2. Point lights
     int lightCount = 0;
@@ -24,13 +24,13 @@ inline void SetupSceneLighting(Shader& shader, const std::vector<Item>& items, c
             shader.setVec3("pointLights[" + number + "].position", item.position);
             
             // Use item color for light color, with increased intensity to cut through fog
-            shader.setVec3("pointLights[" + number + "].ambient", item.color * 0.1f);
-            shader.setVec3("pointLights[" + number + "].diffuse", item.color * 1.5f); 
-            shader.setVec3("pointLights[" + number + "].specular", item.color * 2.0f);
+            shader.setVec3("pointLights[" + number + "].ambient", item.color * 0.0f);
+            shader.setVec3("pointLights[" + number + "].diffuse", item.color * 5.0f); 
+            shader.setVec3("pointLights[" + number + "].specular", item.color * 5.0f);
             
             shader.setFloat("pointLights[" + number + "].constant", 1.0f);
-            shader.setFloat("pointLights[" + number + "].linear", 0.007f);
-            shader.setFloat("pointLights[" + number + "].quadratic", 0.0002f);
+            shader.setFloat("pointLights[" + number + "].linear", 0.001f);
+            shader.setFloat("pointLights[" + number + "].quadratic", 0.001f);
             lightCount++;
         }
     }

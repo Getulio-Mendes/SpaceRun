@@ -166,9 +166,9 @@ public:
         glm::vec3 forward = GetForwardVector();
         shader.setVec3("spotLight.position", Position + forward * 1.5f);
         shader.setVec3("spotLight.direction", forward);
-        shader.setVec3("spotLight.ambient", 2.0f, 1.0f, 1.0f);
-        shader.setVec3("spotLight.diffuse", 2.5f, 1.5f, 1.5f);
-        shader.setVec3("spotLight.specular", 2.0f, 1.0f, 1.0f);
+        shader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+        shader.setVec3("spotLight.diffuse", 0.8f, 0.8f, 0.8f);
+        shader.setVec3("spotLight.specular", 1.5f, 1.5f, 1.5f);
         shader.setFloat("spotLight.constant", 1.0f);
         shader.setFloat("spotLight.linear", 0.0014f);
         shader.setFloat("spotLight.quadratic", 0.000007f);

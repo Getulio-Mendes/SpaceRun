@@ -47,7 +47,7 @@ public:
         // Set properties based on type
         switch (type) {
             case SMALL:
-                Scale = (rand() % 20) / 100.0f + 0.1f; 
+                Scale = (rand() % 10) / 100.0f + 0.5f; 
                 speedBase = 4.0f;
                 hitable = false;
                 break;

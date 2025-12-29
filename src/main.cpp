@@ -13,6 +13,7 @@
 #include "engine/skybox.h"
 #include "engine/lighting.h"
 #include "engine/ui.h"
+#include "engine/shadow_renderer.h"
 #include "player.h"
 #include "asteroid.h"
 #include "asteroidField.h"
@@ -43,8 +44,14 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 
-int main()
+int main(int argc, char ** argv)
 {
+
+    if(argc < 2) {
+        std::cout << "Usage: " << argv[0] << " Shadows (1 for True or 0 for False)" << std::endl;
+        return -1;
+    }
+
     // Inicialização do GLFW
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -81,11 +88,16 @@ int main()
 
     glEnable(GL_MULTISAMPLE); 
 
+    // Use the simple debug solid-color shaders to verify rendering pipeline
     Shader shader("shaders/vertex.glsl", "shaders/fragment.glsl");
     Shader instancedShader("shaders/asteroid_instance_vertex.glsl", "shaders/fragment.glsl");
     Shader uiShader("shaders/ui_vertex.glsl", "shaders/ui_fragment.glsl");
-    Shader shieldShader("shaders/shield_vertex.glsl", "shaders/shield_fragment.glsl");
-    Shader propulsionShader("shaders/propulsion_vertex.glsl", "shaders/propulsion_fragment.glsl");
+    Shader shieldShader("shaders/effects/shield_vertex.glsl", "shaders/effects/shield_fragment.glsl");
+    Shader propulsionShader("shaders/effects/propulsion_vertex.glsl", "shaders/effects/propulsion_fragment.glsl");
+    // Shadow shaders (loaded here; shadow resources are created after scene objects are initialized)
+    Shader simpleDepthShader("shaders/shadow/shadow_depth.vert", "shaders/shadow/shadow_depth.frag");
+    Shader pointDepthShader("shaders/shadow/point_shadow.vert", "shaders/shadow/point_shadow.frag", "shaders/shadow/point_shadow.geom");
+    
     // Carregar modelo da nave espacial (GLTF)
     Model spaceshipModel("../models/scene.gltf");
  
@@ -107,8 +119,16 @@ int main()
     AsteroidField asteroidField = AsteroidField(&asteroidModel, asteroidTextures, 2000, spawnRadius, despawnRadius);
     std::vector<Item> items;
 
+    // Shadow renderer (init after scene objects exist)
+    // cull radius for shadows = half of spawnRadius
+    ShadowRenderer shadowRenderer(2048, 2048, 20, 80.0f);
+     if(argv[1]){
+        shadowRenderer.Init();
+    }
+
+
     // Directional Light Source 
-    glm::vec3 sunPos(0.0f, 100.0f, 80.0f); 
+    glm::vec3 sunPos(-50.0f, 100.0f, -50.0f); 
 
     float lastItemSpawnTime = 0.0f;
     int score = 0;
@@ -127,14 +147,28 @@ int main()
             
             // Spawn ahead of player (X-)
             float spawnDist = 200.0f;
-            float x = player.Position.x - spawnDist;
+            float x,y,z;
+            x = player.Position.x - spawnDist;
             
             // Random Z within corridor
+            float minDistance;
             // rand() % 1000 gives 0-999. Divided by 500 gives 0-2. Minus 1 gives -1 to 1.
-            float z = (((rand() % 1000) / 500.0f) - 1.0f) * player.CorridorWidth * 0.9f; 
-            
-            // Random Y
-            float y = (((rand() % 1000) / 500.0f) - 1.0f) * 20.0f;
+            do {
+
+                x += (((rand() % 1000) / 500.0f) - 1.0f) * 30.0f;
+ 
+                z = (((rand() % 1000) / 500.0f) - 1.0f) * player.CorridorWidth * 0.9f; 
+                
+                // Random Y
+                y = (((rand() % 1000) / 500.0f) - 1.0f) * 20.0f;
+                minDistance = 0;
+                for(const auto& item : items) {
+                    float dist = glm::distance(glm::vec3(x, y, z), item.position);
+                    if (minDistance == 0 || dist < minDistance) {
+                        minDistance = dist;
+                    }
+                }
+            } while(minDistance < 100.0f && items.size() > 1);
 
             // Random Color
             glm::vec3 color(
@@ -166,7 +200,6 @@ int main()
 
         // --- RENDER SKYBOX (First) ---
         glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
- 
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 2000.0f);
         glm::mat4 view = camera.GetViewMatrix();
         skybox.Draw(view, projection);
@@ -177,26 +210,39 @@ int main()
 
         // --- Light Configuration ---
         SetupSceneLighting(shader, items, sunPos, player);
+
+        if(argv[1]){
+            // --- SHADOW PASS (render depth maps for lights) ---
+            // Use the ShadowRenderer to perform the depth passes for directional and point lights
+            shadowRenderer.RenderShadowPass(sunPos, items, asteroidField, player, spaceshipModel, simpleDepthShader, pointDepthShader, camera, SCR_WIDTH, SCR_HEIGHT);
+    
+            // Bind shadow maps (handled by ShadowRenderer)
+            shadowRenderer.BindForShader(shader, 10); 
+        }
         
         // Fog Configuration
         shader.setBool("useFog", true);
         shader.setVec3("fogColor", glm::vec3(0.0f, 0.0f, 0.0f)); 
-        shader.setFloat("fogStart", 100.0f);
-        shader.setFloat("fogEnd", 150.0f);
+        shader.setFloat("fogStart", spawnRadius);
+        shader.setFloat("fogEnd", despawnRadius);
 
         // --- Draw Objects ---
         shader.setVec3("viewPos", camera.Position);
         shader.setMat4("projection", projection);
         shader.setMat4("view", view);
 
+
         // Renderizar modelo da nave espacial
         player.Draw(shader, spaceshipModel);
 
         // Draw Asteroids
         instancedShader.use();
-
         instancedShader.setBool("useSingleColor", false);
  
+        if(argv[1]){
+            // Bind shadow maps (handled by ShadowRenderer)
+            shadowRenderer.BindForShader(instancedShader, 10); 
+        }
 
         // --- Light Configuration for instancedShader ---
         SetupSceneLighting(instancedShader, items, sunPos, player);
@@ -211,11 +257,14 @@ int main()
         instancedShader.setVec3("viewPos", camera.Position);
         instancedShader.setMat4("projection", projection);
         instancedShader.setMat4("view", view);
+        instancedShader.setBool("FORCE_WHITE", true);
 
         asteroidField.UpdateAsteroidField(deltaTime, player.Position, player.GetForwardVector(), currentFrame);
         asteroidField.DrawAsteroidFieldInstanced(instancedShader);
 
         shader.use();
+        instancedShader.setBool("FORCE_WHITE", true);
+ 
 
         // Check Collision
         float playerRadius = player.HitboxSize.x * player.ShieldScaleMultiplier;
@@ -257,6 +306,8 @@ int main()
         }
 
         // Renderizar itens (Luzes e Cubos)
+        instancedShader.setBool("FORCE_WHITE", true);
+ 
         RenderItems(shader, items);
 
         // Draw Engines

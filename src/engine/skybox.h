@@ -38,6 +38,8 @@ public:
     void Draw(const glm::mat4& view, const glm::mat4& projection)
     {
         glDepthFunc(GL_LEQUAL);
+        // Prevent the skybox from writing to the depth buffer so it doesn't occlude scene geometry
+        glDepthMask(GL_FALSE);
         shader.use();
         
         // Remove translation from the view matrix
@@ -51,6 +53,8 @@ public:
         glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
+        // Restore depth write and function for subsequent geometry
+        glDepthMask(GL_TRUE);
         glDepthFunc(GL_LESS);
     }
 

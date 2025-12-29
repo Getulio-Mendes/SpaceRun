@@ -96,6 +96,7 @@ struct AsteroidField {
     // Instanced rendering for all asteroids
     void DrawAsteroidFieldInstanced(Shader& shader) {
         shader.setBool("isUnlit", false);
+        shader.setBool("brightness", 0.7f);
 
         // For each mesh in the model, draw all asteroids that use it
         for (size_t meshIdx = 0; meshIdx < asteroidModel->meshes.size(); ++meshIdx) {
