@@ -131,112 +131,125 @@ public:
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT); // Peter-panning fix
 
-        // 2. Render Directional Light (Sun)
-        {
-            float near_plane = 1.0f, far_plane = 500.0f;
-            // Ortho box size matches globalCullRadius roughly
-            glm::mat4 lightProjection = glm::ortho(-60.0f, 60.0f, -60.0f, 60.0f, near_plane, far_plane);
+        // // 2. Render Directional Light (Sun)
+        // {
+        //     float near_plane = 1.0f, far_plane = 500.0f;
+        //     // Ortho box size matches globalCullRadius roughly
+        //     glm::mat4 lightProjection = glm::ortho(-60.0f, 60.0f, -60.0f, 60.0f, near_plane, far_plane);
             
-            // Sun follows player on X/Z plane to keep shadows high resolution around player
-            glm::vec3 sunTarget = player.Position;
-            glm::vec3 sunPosAdjusted = sunTarget + glm::normalize(sunPos) * 100.0f; // Keep sun vector but centered relative to player
+        //     // Sun follows player on X/Z plane to keep shadows high resolution around player
+        //     glm::vec3 sunTarget = player.Position;
+        //     glm::vec3 sunPosAdjusted = sunTarget + glm::normalize(sunPos) * 100.0f; // Keep sun vector but centered relative to player
             
-            glm::mat4 lightView = glm::lookAt(sunPosAdjusted, sunTarget, glm::vec3(0.0f, 0.0f, -1.0f));
-            dirLightSpaceMatrix = lightProjection * lightView;
+        //     glm::mat4 lightView = glm::lookAt(sunPosAdjusted, sunTarget, glm::vec3(0.0f, 0.0f, -1.0f));
+        //     dirLightSpaceMatrix = lightProjection * lightView;
 
-            glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-            glBindFramebuffer(GL_FRAMEBUFFER, dirDepthFBO);
-            glClear(GL_DEPTH_BUFFER_BIT);
-            glEnable(GL_POLYGON_OFFSET_FILL);
-            glPolygonOffset(2.0f, 2.0f);
+        //     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        //     glBindFramebuffer(GL_FRAMEBUFFER, dirDepthFBO);
+        //     glClear(GL_DEPTH_BUFFER_BIT);
+        //     glEnable(GL_POLYGON_OFFSET_FILL);
+        //     glPolygonOffset(2.0f, 2.0f);
             
-            simpleDepthShader.use();
-            simpleDepthShader.setMat4("lightSpaceMatrix", dirLightSpaceMatrix);
+        //     simpleDepthShader.use();
+        //     simpleDepthShader.setMat4("lightSpaceMatrix", dirLightSpaceMatrix);
          
-            // Pass: Center = Player, Radius = globalCullRadius
-            RenderSceneDepthInternal(simpleDepthShader, asteroidField, player, spaceshipModel, items, 
-                                     player.Position, globalCullRadius);
-            glDisable(GL_POLYGON_OFFSET_FILL);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
+        //     // Pass: Center = Player, Radius = globalCullRadius
+        //     RenderSceneDepthInternal(simpleDepthShader, asteroidField, player, spaceshipModel, items, 
+        //                              player.Position, globalCullRadius);
+        //     glDisable(GL_POLYGON_OFFSET_FILL);
+        //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // }
 
-        // 3. Render Point Lights (Closest N lights)
-        {
-            // Gather valid lights
-            std::vector<glm::vec3> pointLightPositions;
-            for (const auto& it : items) {
-                if (it.isLightSource && pointLightPositions.size() < MAX_POINT_SHADOWS)
-                    pointLightPositions.push_back(it.position);
-            }
+        // // 3. Render Point Lights (Closest N lights)
+        // {
+        //     // Gather valid lights
+        //     std::vector<glm::vec3> pointLightPositions;
+        //     for (const auto& it : items) {
+        //         if (it.isLightSource && pointLightPositions.size() < MAX_POINT_SHADOWS)
+        //             pointLightPositions.push_back(it.position);
+        //     }
 
-            // Sort by distance to player
-            activePointIndices.clear();
-            if (!pointLightPositions.empty()) {
-                std::vector<int> idx(pointLightPositions.size());
-                for (size_t i = 0; i < idx.size(); ++i) idx[i] = (int)i;
+        //     // Sort by distance to player
+        //     activePointIndices.clear();
+        //     if (!pointLightPositions.empty()) {
+        //         std::vector<int> idx(pointLightPositions.size());
+        //         for (size_t i = 0; i < idx.size(); ++i) idx[i] = (int)i;
                 
-                std::sort(idx.begin(), idx.end(), [&](int a, int b) {
-                    return glm::distance(pointLightPositions[a], player.Position) < glm::distance(pointLightPositions[b], player.Position);
-                });
+        //         std::sort(idx.begin(), idx.end(), [&](int a, int b) {
+        //             return glm::distance(pointLightPositions[a], player.Position) < glm::distance(pointLightPositions[b], player.Position);
+        //         });
                 
-                // Only render closest 3 lights
-                int take = std::min((int)idx.size(), 1);
-                for (int i = 0; i < take; ++i) activePointIndices.push_back(idx[i]);
-            }
+        //         // Only render closest 3 lights
+        //         int take = std::min((int)idx.size(), 1);
+        //         for (int i = 0; i < take; ++i) activePointIndices.push_back(idx[i]);
+        //     }
 
-            // Projection for Cubemap
-            float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
-            glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, 1.0f, pointLightFarPlane);
+        //     // Projection for Cubemap
+        //     float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
+        //     glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, 1.0f, pointLightFarPlane);
 
-            glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        //     glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
             
-            for (int sel = 0; sel < (int)activePointIndices.size(); ++sel) {
-                int i = activePointIndices[sel];
-                glm::vec3 lightPos = pointLightPositions[i];
+        //     for (int sel = 0; sel < (int)activePointIndices.size(); ++sel) {
+        //         int i = activePointIndices[sel];
+        //         glm::vec3 lightPos = pointLightPositions[i];
 
-                std::vector<glm::mat4> shadowTransforms;
-                shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 1, 0, 0), glm::vec3(0,-1, 0)));
-                shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1, 0, 0), glm::vec3(0,-1, 0)));
-                shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0, 1, 0), glm::vec3(0, 0, 1)));
-                shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0,-1, 0), glm::vec3(0, 0,-1)));
-                shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0, 0, 1), glm::vec3(0,-1, 0)));
-                shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0, 0,-1), glm::vec3(0,-1, 0)));
+        //         std::vector<glm::mat4> shadowTransforms;
+        //         shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 1, 0, 0), glm::vec3(0,-1, 0)));
+        //         shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1, 0, 0), glm::vec3(0,-1, 0)));
+        //         shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0, 1, 0), glm::vec3(0, 0, 1)));
+        //         shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0,-1, 0), glm::vec3(0, 0,-1)));
+        //         shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0, 0, 1), glm::vec3(0,-1, 0)));
+        //         shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3( 0, 0,-1), glm::vec3(0,-1, 0)));
 
-                glBindFramebuffer(GL_FRAMEBUFFER, pointDepthFBOs[i]);
-                glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, pointDepthMaps[i], 0);
-                glClear(GL_DEPTH_BUFFER_BIT);
+        //         glBindFramebuffer(GL_FRAMEBUFFER, pointDepthFBOs[i]);
+        //         glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, pointDepthMaps[i], 0);
+        //         glClear(GL_DEPTH_BUFFER_BIT);
 
-                pointDepthShader.use();
-                for (int m = 0; m < 6; ++m)
-                    pointDepthShader.setMat4("shadowMatrices[" + std::to_string(m) + "]", shadowTransforms[m]);
-                pointDepthShader.setVec3("lightPos", lightPos);
-                pointDepthShader.setFloat("far_plane", pointLightFarPlane);
+        //         pointDepthShader.use();
+        //         for (int m = 0; m < 6; ++m)
+        //             pointDepthShader.setMat4("shadowMatrices[" + std::to_string(m) + "]", shadowTransforms[m]);
+        //         pointDepthShader.setVec3("lightPos", lightPos);
+        //         pointDepthShader.setFloat("far_plane", pointLightFarPlane);
 
-                // Pass: Center = Light, Radius = pointLightFarPlane
-                RenderSceneDepthInternal(pointDepthShader, asteroidField, player, spaceshipModel, items, 
-                                         lightPos, pointLightFarPlane);
+        //         // Pass: Center = Light, Radius = pointLightFarPlane
+        //         RenderSceneDepthInternal(pointDepthShader, asteroidField, player, spaceshipModel, items, 
+        //                                  lightPos, pointLightFarPlane);
 
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            }
-        }
+        //         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        //     }
+        // }
 
         // 4. Render Spotlight (Flashlight)
         {
-            float fov = 35.0f; // Slightly wider than visual cone to avoid clipping
-            float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
-            glm::mat4 spotProj = glm::perspective(glm::radians(fov), aspect, 1.0f, spotLightFarPlane);
+            glDisable(GL_CULL_FACE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(GL_TRUE);
+            glDepthFunc(GL_LESS);
 
-            glm::vec3 lightPos = player.Position + player.GetForwardVector() * 2.0f;
-            glm::vec3 lightTarget = lightPos + player.GetForwardVector();
-            glm::mat4 spotView = glm::lookAt(lightPos, lightTarget, glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+            float fov = 15.0f; // Slightly wider than visual cone to avoid clipping
+            float aspect = (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT;
+            glm::mat4 spotProj = glm::perspective(glm::radians(fov), 1.0f, 0.1f, spotLightFarPlane);
+
+            glm::vec3 lightPos = player.Position + player.GetForwardVector() * 2.0f + 2.0f;
+            glm::vec3 forward = normalize(player.GetForwardVector());
+            glm::vec3 right   = normalize(cross(glm::vec3(0,1,0), forward));
+            glm::vec3 up      = normalize(cross(forward, right));
+
+            glm::mat4 spotView = glm::lookAt(lightPos, lightPos + forward, up);
+
             spotLightSpaceMatrix = spotProj * spotView;
 
             glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
             glBindFramebuffer(GL_FRAMEBUFFER, spotDepthFBO);
+            glClearDepth(1.0);
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            glEnable(GL_POLYGON_OFFSET_FILL);
-            glPolygonOffset(2.0f, 2.0f);
+            //glEnable(GL_POLYGON_OFFSET_FILL);
+            //glPolygonOffset(2.0f, 4.0f);
 
             simpleDepthShader.use();
             simpleDepthShader.setMat4("lightSpaceMatrix", spotLightSpaceMatrix);
@@ -245,7 +258,7 @@ public:
             RenderSceneDepthInternal(simpleDepthShader, asteroidField, player, spaceshipModel, items, 
                                      lightPos, spotLightFarPlane);
 
-            glDisable(GL_POLYGON_OFFSET_FILL);
+            //glDisable(GL_POLYGON_OFFSET_FILL);
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
@@ -263,6 +276,7 @@ public:
         shader.use();
         
         // 1. Bind Directional Shadow Map
+        shader.setBool("useShadows", true);
         shader.setInt("dirShadowMap", texUnit);
         glActiveTexture(GL_TEXTURE0 + texUnit);
         glBindTexture(GL_TEXTURE_2D, dirDepthMap);
@@ -277,7 +291,7 @@ public:
         glBindTexture(GL_TEXTURE_CUBE_MAP, pointDepthMaps[0]); // Bind any valid cubemap here so it's not empty
 
         for (int i = 0; i < (int)MAX_POINT_SHADOWS; ++i) {
-            std::string name = "shadows[" + std::to_string(i) + "]";
+            std::string name = "pointShadows[" + std::to_string(i) + "]";
             std::string farName = "pointShadowFarPlanes[" + std::to_string(i) + "]";
 
             // Default state: Point to the safe unit, disable shadow calculation (far_plane = 0)
@@ -288,7 +302,7 @@ public:
         // Now overwrite only the ACTIVE lights with their unique texture units
         for (int j = 0; j < (int)activePointIndices.size(); ++j) {
             int i = activePointIndices[j];
-            std::string name = "shadows[" + std::to_string(i) + "]";
+            std::string name = "pointShadows[" + std::to_string(i) + "]";
             std::string farName = "pointShadowFarPlanes[" + std::to_string(i) + "]";
 
             // Assign a NEW unique texture unit for this active light
@@ -356,12 +370,12 @@ private:
         player.Draw(depthShader, spaceshipModel);
 
         // 2. Render Asteroids (Optimized Instanced Batching)
-        if (asteroidField.asteroidModel && !asteroidField.asteroidModel->meshes.empty()) {
+        if (!asteroidField.asteroidModel.meshes.empty()) {
             
             // Bind the persistent VBO once
             glBindBuffer(GL_ARRAY_BUFFER, sharedInstanceVBO);
 
-            for (size_t meshIdx = 0; meshIdx < asteroidField.asteroidModel->meshes.size(); ++meshIdx) {
+            for (size_t meshIdx = 0; meshIdx < asteroidField.asteroidModel.meshes.size(); ++meshIdx) {
                 tempMatrixBuffer.clear();
 
                 // CPU-Side Culling and Filtering
@@ -386,7 +400,7 @@ private:
                 glBufferSubData(GL_ARRAY_BUFFER, 0, count * sizeof(glm::mat4), tempMatrixBuffer.data());
 
                 // Setup VAO
-                unsigned int VAO = asteroidField.asteroidModel->meshes[meshIdx].VAO;
+                unsigned int VAO = asteroidField.asteroidModel.meshes[meshIdx].VAO;
                 glBindVertexArray(VAO);
                 
                 // Configure Instanced Attributes
@@ -401,7 +415,7 @@ private:
                 
                 // Draw Call
                 glDrawElementsInstanced(GL_TRIANGLES, 
-                                        asteroidField.asteroidModel->meshes[meshIdx].indices.size(), 
+                                        asteroidField.asteroidModel.meshes[meshIdx].indices.size(), 
                                         GL_UNSIGNED_INT, 0, 
                                         (GLsizei)count);
 

@@ -19,7 +19,7 @@ inline void SetupSceneLighting(Shader& shader, const std::vector<Item>& items, c
     // 2. Point lights
     int lightCount = 0;
     for(const auto& item : items) {
-        if(item.isLightSource && lightCount < 20) {
+        if(lightCount < 20) {
             std::string number = std::to_string(lightCount);
             shader.setVec3("pointLights[" + number + "].position", item.position);
             

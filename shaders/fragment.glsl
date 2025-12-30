@@ -17,6 +17,8 @@ uniform bool isUnlit;
 uniform int hasDiffuse;
 uniform float brightness = 1.0;
 
+uniform bool useShadows;
+
 // Material properties
 uniform sampler2D texture_diffuse1;
 uniform sampler2D texture_specular1;
@@ -49,11 +51,13 @@ struct PointLight {
     vec3 specular;
 };
 #define MAX_POINT_LIGHTS 20
+#define MAX_POINT_LIGHTS_SHADOWS 1
+
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform int nPointLights;
 uniform bool FORCE_WHITE;
 
-uniform samplerCube shadows[MAX_POINT_LIGHTS];
+uniform samplerCube pointShadows[MAX_POINT_LIGHTS];
 uniform float pointShadowFarPlanes[MAX_POINT_LIGHTS];
 
 
@@ -137,13 +141,11 @@ void main()
     vec3 viewDir = normalize(viewPos - FragPos);
 
   
-    // Phase 1: Directional lighting
     vec3 result = CalcDirLight(dirLight, norm, viewDir, diffColor, specColor);
     
-    // Phase 2: Point lights (with shadows when available)
     vec3 pointLightsResult = vec3(0.0);
     for(int i = 0; i < nPointLights; i++) {
-        if (i < MAX_POINT_LIGHTS) {
+        if (i < MAX_POINT_LIGHTS_SHADOWS && useShadows) {
             float farp = pointShadowFarPlanes[i];
             pointLightsResult += CalcPointLightWithShadow(pointLights[i], norm, FragPos, viewDir, diffColor, specColor, i, farp);
         } else {
@@ -151,7 +153,6 @@ void main()
         }
     }
     
-    // Phase 3: Spot light
     vec3 spotLightResult = CalcSpotLight(spotLight, norm, FragPos, viewDir, diffColor, specColor);    
     
     result *= brightness;
@@ -184,8 +185,11 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 diffColor, vec
     vec3 ambient = light.ambient * diffColor;
     vec3 diffuse = light.diffuse * diff * diffColor;
     vec3 specular = light.specular * spec * specColor;
-    // Shadow for directional light (use shared helper)
-    float shadow = CalcShadow2D(dirShadowMap, dirLightSpaceMatrix, FragPos, normal, lightDir);
+
+    float shadow = 0.0;
+    if(useShadows){
+        shadow = CalcShadow2D(dirShadowMap, dirLightSpaceMatrix, FragPos, normal, lightDir);
+    }
     return (ambient + (1.0 - shadow) * (diffuse + specular));
 }
 
@@ -193,14 +197,18 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 diffColor, vec
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffColor, vec3 specColor)
 {
     vec3 lightDir = normalize(light.position - fragPos);
+    
     // Diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
+    
     // Specular shading
     vec3 halfwayDir = normalize(lightDir + viewDir);
     float spec = pow(max(dot(normal, halfwayDir), 0.0), materialShininess);
+    
     // Attenuation
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
+    
     // Combine results
     vec3 ambient = light.ambient * diffColor;
     vec3 diffuse = light.diffuse * diff * diffColor;
@@ -256,27 +264,27 @@ float CalcShadowCubeIndex(vec3 fragPos, vec3 lightPos, float far_plane, int shad
     float currentDepth = length(fragToLight);
     float closestDepth = 0.0;
     // Manually select the correct sampler to avoid dynamic sampler-array indexing
-    if (shadowIndex == 0) closestDepth = texture(shadows[0], fragToLight).r;
-    else if (shadowIndex == 1) closestDepth = texture(shadows[1], fragToLight).r;
-    else if (shadowIndex == 2) closestDepth = texture(shadows[2], fragToLight).r;
-    else if (shadowIndex == 3) closestDepth = texture(shadows[3], fragToLight).r;
-    else if (shadowIndex == 4) closestDepth = texture(shadows[4], fragToLight).r;
-    else if (shadowIndex == 5) closestDepth = texture(shadows[5], fragToLight).r;
-    else if (shadowIndex == 6) closestDepth = texture(shadows[6], fragToLight).r;
-    else if (shadowIndex == 7) closestDepth = texture(shadows[7], fragToLight).r;
-    else if (shadowIndex == 8) closestDepth = texture(shadows[8], fragToLight).r;
-    else if (shadowIndex == 9) closestDepth = texture(shadows[9], fragToLight).r;
-    else if (shadowIndex == 10) closestDepth = texture(shadows[10], fragToLight).r;
-    else if (shadowIndex == 11) closestDepth = texture(shadows[11], fragToLight).r;
-    else if (shadowIndex == 12) closestDepth = texture(shadows[12], fragToLight).r;
-    else if (shadowIndex == 13) closestDepth = texture(shadows[13], fragToLight).r;
-    else if (shadowIndex == 14) closestDepth = texture(shadows[14], fragToLight).r;
-    else if (shadowIndex == 15) closestDepth = texture(shadows[15], fragToLight).r;
-    else if (shadowIndex == 16) closestDepth = texture(shadows[16], fragToLight).r;
-    else if (shadowIndex == 17) closestDepth = texture(shadows[17], fragToLight).r;
-    else if (shadowIndex == 18) closestDepth = texture(shadows[18], fragToLight).r;
-    else if (shadowIndex == 19) closestDepth = texture(shadows[19], fragToLight).r;
-    else closestDepth = texture(shadows[0], fragToLight).r;
+    if (shadowIndex == 0) closestDepth = texture(pointShadows[0], fragToLight).r;
+    else if (shadowIndex == 1) closestDepth = texture(pointShadows[1], fragToLight).r;
+    else if (shadowIndex == 2) closestDepth = texture(pointShadows[2], fragToLight).r;
+    else if (shadowIndex == 3) closestDepth = texture(pointShadows[3], fragToLight).r;
+    else if (shadowIndex == 4) closestDepth = texture(pointShadows[4], fragToLight).r;
+    else if (shadowIndex == 5) closestDepth = texture(pointShadows[5], fragToLight).r;
+    else if (shadowIndex == 6) closestDepth = texture(pointShadows[6], fragToLight).r;
+    else if (shadowIndex == 7) closestDepth = texture(pointShadows[7], fragToLight).r;
+    else if (shadowIndex == 8) closestDepth = texture(pointShadows[8], fragToLight).r;
+    else if (shadowIndex == 9) closestDepth = texture(pointShadows[9], fragToLight).r;
+    else if (shadowIndex == 10) closestDepth = texture(pointShadows[10], fragToLight).r;
+    else if (shadowIndex == 11) closestDepth = texture(pointShadows[11], fragToLight).r;
+    else if (shadowIndex == 12) closestDepth = texture(pointShadows[12], fragToLight).r;
+    else if (shadowIndex == 13) closestDepth = texture(pointShadows[13], fragToLight).r;
+    else if (shadowIndex == 14) closestDepth = texture(pointShadows[14], fragToLight).r;
+    else if (shadowIndex == 15) closestDepth = texture(pointShadows[15], fragToLight).r;
+    else if (shadowIndex == 16) closestDepth = texture(pointShadows[16], fragToLight).r;
+    else if (shadowIndex == 17) closestDepth = texture(pointShadows[17], fragToLight).r;
+    else if (shadowIndex == 18) closestDepth = texture(pointShadows[18], fragToLight).r;
+    else if (shadowIndex == 19) closestDepth = texture(pointShadows[19], fragToLight).r;
+    else closestDepth = texture(pointShadows[0], fragToLight).r;
     closestDepth *= far_plane;   // undo [0;1]
     float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
     return shadow;
@@ -331,8 +339,11 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;
-    // Shadow for spotlight
-    // Shadow for spotlight (use shared helper)
-    float shadow = CalcShadow2D(spotShadowMap, spotLightSpaceMatrix, fragPos, normal, lightDir);
+
+    float shadow = 0.0;
+    if(useShadows){
+        shadow = CalcShadow2D(spotShadowMap, spotLightSpaceMatrix, fragPos, normal, lightDir);
+    }
+
     return (ambient + (1.0 - shadow) * (diffuse + specular));
 }

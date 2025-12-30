@@ -37,6 +37,8 @@ public:
 
     void Draw(const glm::mat4& view, const glm::mat4& projection)
     {
+        glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+ 
         glDepthFunc(GL_LEQUAL);
         // Prevent the skybox from writing to the depth buffer so it doesn't occlude scene geometry
         glDepthMask(GL_FALSE);

@@ -10,15 +10,20 @@
 #include "engine/model.h"
 #include "engine/shader.h"
 #include "engine/primitives.h"
+#include "engine/model.h"
 
 class Player {
 public:
     // Spaceship state
+    Model spaceshipModel;
     glm::vec3 Position;
     glm::vec3 Rotation; // pitch, yaw, roll
     glm::vec3 Velocity;
     glm::vec3 AngularVelocity;
-
+    // Model adjustments
+    glm::vec3 ModelScale;
+    glm::vec3 ModelRotationCorrection;
+ 
     // Physics constants
     float Acceleration;
     float MaxSpeed;
@@ -43,35 +48,32 @@ public:
     int Lives;
     float InvulnerabilityTimer;
 
-    // Model adjustments
-    glm::vec3 ModelScale;
-    glm::vec3 ModelRotationCorrection;
 
-    // Constructor
-    Player(glm::vec3 startPos = glm::vec3(0.0f)) 
-        : Position(startPos), 
-          Rotation(0.0f, 90.0f, 0.0f), 
-          Velocity(0.0f), 
-          AngularVelocity(0.0f),
-          Acceleration(35.0f),
-          MaxSpeed(200.0f),
-          Friction(2.0f),
-          RotationAcceleration(200.0f),
-          MaxRotationSpeed(180.0f),
-          RotationFriction(3.0f),
-          CameraDistance(8.0f),
-          CameraHeight(2.0f),
-          CameraYawOffset(90.0f),
-          CameraPitchOffset(0.0f),
-          MouseSensitivity(0.30f),
-          HitboxSize(1.0f, 0.4f, 1.0f),
-          ShieldScaleMultiplier(1.3f),
-          CorridorWidth(40.0f),
-          Lives(3),
-          InvulnerabilityTimer(0.0f),
-          ModelScale(0.001f), // Adjusted scale
-          ModelRotationCorrection(0.0f, -90.0f, 0.0f) // Adjusted rotation
+    Player(glm::vec3 startPos = glm::vec3(0.0f))
+        : spaceshipModel(Model("../models/scene.gltf"))
     {
+        Position = startPos;
+        Rotation = glm::vec3(0.0f, 90.0f, 0.0f);
+        Velocity = glm::vec3(0.0f);
+        AngularVelocity = glm::vec3(0.0f);
+        Acceleration = 35.0f;
+        MaxSpeed = 200.0f;
+        Friction = 2.0f;
+        RotationAcceleration = 200.0f;
+        MaxRotationSpeed = 180.0f;
+        RotationFriction = 3.0f;
+        CameraDistance = 8.0f;
+        CameraHeight = 2.0f;
+        CameraYawOffset = 90.0f;
+        CameraPitchOffset = 0.0f;
+        MouseSensitivity = 0.30f;
+        HitboxSize = glm::vec3(1.0f, 0.4f, 1.0f);
+        ShieldScaleMultiplier = 1.3f;
+        CorridorWidth = 40.0f;
+        Lives = 3;
+        InvulnerabilityTimer = 0.0f;
+        ModelScale = glm::vec3(0.001f);
+        ModelRotationCorrection = glm::vec3(0.0f, -90.0f, 0.0f);
     }
 
     void ProcessInput(GLFWwindow* window, float deltaTime) {
@@ -162,6 +164,25 @@ public:
         camera.FollowTarget(Position, Rotation.y, CameraDistance, CameraHeight, CameraYawOffset, CameraPitchOffset);
     }
 
+    bool OnAsteroidCollision(const glm::vec3& asteroidPos)
+    {
+        bool wasVulnerable = (InvulnerabilityTimer <= 0.0f);
+        if (wasVulnerable) {
+            Lives--;
+            // 2 seconds invulnerability
+            InvulnerabilityTimer = 2.0f;
+        }
+
+        // Simple bounce effect: push away from the asteroid
+        glm::vec3 dir = Position - asteroidPos;
+        if (glm::length(dir) > 0.0f) {
+            glm::vec3 pushDir = glm::normalize(dir);
+            Velocity += pushDir * 10.0f;
+        }
+
+        return (wasVulnerable && Lives <= 0);
+    }
+
     void SetSpotlight(Shader& shader) {
         glm::vec3 forward = GetForwardVector();
         shader.setVec3("spotLight.position", Position + forward * 1.5f);
@@ -197,7 +218,7 @@ public:
         return model;
     }
 
-    void DrawHitbox(Shader& shader, glm::vec3 viewPos, float time) {
+    void DrawShield(Shader& shader, glm::vec3 viewPos, float time) {
         shader.use();
         
         // Enable Blending for transparency

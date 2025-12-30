@@ -1,0 +1,35 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "cppdbg",
+      "request": "launch",
+      "name": "Launch trabalho_gc (gdb)",
+      "program": "${input:executablePath}",
+      "args": [
+        "${input:shadowsFlag}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": true,
+      "preLaunchTask": "build",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "environment": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "executablePath",
+      "type": "pickString",
+      "description": "Select the executable to run for debugging (choose the built trabalho_gc binary)",
+      "options": [
+        "${workspaceFolder}/build/trabalho_gc",
+      ]
+    },
+    {
+      "id": "shadowsFlag",
+      "type": "promptString",
+      "description": "Enter Shadows flag for the program (1 to enable shadows, 0 to disable)"
+    }
+  ]
+}

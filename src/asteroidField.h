@@ -15,7 +15,7 @@
 
 struct AsteroidField {
     std::vector<Asteroid> asteroids;
-    Model* asteroidModel;
+    Model asteroidModel;
     std::vector<unsigned int> textures;
     float lastSpawnCheckTime;
     float spawnRadius;
@@ -24,9 +24,22 @@ struct AsteroidField {
     float ySpan;
 
 
-    AsteroidField(Model* model, const std::vector<unsigned int>& texs, int amount, float spawnRadius, float despawnRadius) {
-        this->asteroidModel = model;
-        this->textures = texs;
+    AsteroidField(int amount, float spawnRadius, float despawnRadius):
+        asteroidModel(Model("../models/asteriods/asteroid_03_01.obj", true, true))
+    {
+        Model asteroidModel("../models/asteriods/asteroid_03_01.obj", true, true);
+        std::vector<unsigned int> asteroidTextures;
+        asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0001.jpg", "../models/asteriods"));
+        asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0002.jpg", "../models/asteriods"));
+        asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0003.jpg", "../models/asteriods"));
+        asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0004.jpg", "../models/asteriods"));
+        asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0005.jpg", "../models/asteriods"));
+        asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0006.jpg", "../models/asteriods"));
+        asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0007.jpg", "../models/asteriods"));
+        asteroidTextures.push_back(TextureFromFile("space_asteroids_02_l_0008.jpg", "../models/asteriods"));
+        
+        this->asteroidModel = asteroidModel;
+        this->textures = asteroidTextures;
         this->lastSpawnCheckTime = 0.0f;
         this->spawnRadius = spawnRadius;
         this->despawnRadius = despawnRadius;
@@ -34,7 +47,7 @@ struct AsteroidField {
         this->ySpan = 50.0f;
         for(unsigned int i = 0; i < amount; i++) {
             // Initial generation: 360 degrees, distance [radius, radius + offset*2]
-            this->asteroids.push_back(GenerateAsteroid(glm::vec3(0.0f), spawnRadius, despawnRadius, this->ySpan, model, texs));
+            this->asteroids.push_back(GenerateAsteroid(glm::vec3(0.0f), spawnRadius, despawnRadius, this->ySpan, &asteroidModel, asteroidTextures));
         }
     }
 
@@ -88,7 +101,7 @@ struct AsteroidField {
             while (this->asteroids.size() < this->maxAsteroids) {
                 // Spawn strictly between spawnRadius and despawnRadius (minus buffer)
                 // And in the direction the player is facing
-                this->asteroids.push_back(GenerateAsteroid(playerPos, this->spawnRadius, this->despawnRadius, this->ySpan, this->asteroidModel, this->textures, playerDir));
+                this->asteroids.push_back(GenerateAsteroid(playerPos, this->spawnRadius, this->despawnRadius, this->ySpan, &this->asteroidModel, this->textures, playerDir));
             }
         }
     }
@@ -99,7 +112,7 @@ struct AsteroidField {
         shader.setBool("brightness", 0.7f);
 
         // For each mesh in the model, draw all asteroids that use it
-        for (size_t meshIdx = 0; meshIdx < asteroidModel->meshes.size(); ++meshIdx) {
+        for (size_t meshIdx = 0; meshIdx < asteroidModel.meshes.size(); ++meshIdx) {
             // Collect model matrices for asteroids using this mesh
             std::vector<glm::mat4> meshModelMatrices;
             for (const auto& asteroid : this->asteroids) {
@@ -115,7 +128,7 @@ struct AsteroidField {
             glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
             glBufferData(GL_ARRAY_BUFFER, meshModelMatrices.size() * sizeof(glm::mat4), &meshModelMatrices[0], GL_STATIC_DRAW);
 
-            unsigned int VAO = asteroidModel->meshes[meshIdx].VAO;
+            unsigned int VAO = asteroidModel.meshes[meshIdx].VAO;
             glBindVertexArray(VAO);
             std::size_t vec4Size = sizeof(glm::vec4);
             for (unsigned int i = 0; i < 4; i++) {
@@ -124,10 +137,10 @@ struct AsteroidField {
                 glVertexAttribDivisor(5 + i, 1);
             }
 
-            asteroidModel->meshes[meshIdx].BindTextures(shader, 0);
+            asteroidModel.meshes[meshIdx].BindTextures(shader, 0);
             // Draw instanced
             //std::cout << "Drawing " << meshModelMatrices.size() << " instances of mesh " << meshIdx << std::endl;
-            glDrawElementsInstanced(GL_TRIANGLES, asteroidModel->meshes[meshIdx].indices.size(), GL_UNSIGNED_INT, 0, meshModelMatrices.size());
+            glDrawElementsInstanced(GL_TRIANGLES, asteroidModel.meshes[meshIdx].indices.size(), GL_UNSIGNED_INT, 0, meshModelMatrices.size());
 
             // Cleanup
             glBindVertexArray(0);
